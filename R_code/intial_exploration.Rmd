@@ -1,0 +1,271 @@
+---
+title: "Exploration Notebook"
+output: html_notebook
+---
+
+This notebook is just an investigation into the integrity of the data it is now cleaned and examined in further.
+
+
+```{r}
+SUP <- read.csv("dataSup.csv")
+
+# Print out columns
+print("Columns in the dataset:")
+print(names(SUP))
+
+# Iterate through columns and print the number of entries and unique entries
+for (column in names(SUP)) {
+  cat("\nColumn:", column, "\n")
+  
+  # Number of entries
+  cat("Number of entries:", length(SUP[, column]), "\n")
+  
+  # Number of unique entries
+  unique_entries <- unique(SUP[, column])
+  cat("Number of unique entries:", length(unique_entries), "\n")
+}
+
+```
+## Some things I want to explore:
+We are focusing on the Sup data this week so lets break down how it works.
+-Number of entries does not equal unique entries explore 
+-County,State what does that look like in america 
+- case id - ori ?
+- Ageny police how does that correspond in america 
+- angetype - 8 look up what agenys they have in america 
+-Source FBI and where?
+- check incident column meaning
+- Check actionType 
+- Situation contains 2 sets of data lets see if we can spilt it 
+-Vic age goes to 101 unique entries lets double chck that
+- breakdown of race/ethnitic groups
+- Weapon breakdown
+- Relationship breakdown
+
+
+```{r}
+#Lets look for rows that contain teh exact information e.g duplicates 
+
+# Check for duplicate rows
+duplicate_rows <- SUP[duplicated(SUP), ]
+
+# Count the number of duplicate rows
+num_duplicate_rows <- nrow(duplicate_rows)
+
+# Print the result
+cat("Number of duplicate rows:", num_duplicate_rows, "\n")
+
+
+# Remove duplicate rows
+SUP1 <- unique(SUP)
+
+# Print the result
+cat("Number of rows before removing duplicates:", nrow(SUP), "\n")
+cat("Number of rows after removing duplicates:", nrow(SUP1), "\n")
+
+write.csv(SUP1, "SUP1.csv", row.names = FALSE)
+
+```
+
+```{r include=FALSE}
+SUP1 <- unique(SUP)
+
+# Print the result
+cat("Number of rows before removing duplicates:", nrow(SUP), "\n")
+cat("Number of rows after removing duplicates:", nrow(SUP1), "\n")
+```
+
+## Number of entries does not equal unique entries explore 
+Number of rows before removing duplicates: 870936 
+Number of rows after removing duplicates: 868480 
+
+I have removed the rows that match entirely another row, howver there still is  some IDs  match that it is the same and remove, around  ~3000 is still a lot of records this could affect calling and classifying later on.
+Lets explore how to apporach these issues, may have a criteria if to pass to remove, may also have if the source is the same or  not. 
+
+## County,State what does that look like in america 
+
+
+The list that the U.S. Census Bureau keeps that lists all of the counties in the United States says that there are 3,481 counties or other kinds of divisions that are equal to the county in the United States.
+
+Could also explore the list of counties across to see where there will be no murder hot-spots and if there is a data inconsistency 
+
+The data says 51 states but only 50 exist is there an N/A or lets explore this.
+
+```{r}
+
+
+
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "State"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column])
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+
+
+
+```
+We have District of Columbia in the list : when researched I found that it is not a state or county it is a district - lets delve deeper into it location wise will give an error when mapping or not map at all
+
+
+
+
+
+## Ageny police how does that correspond in america - angetype - 8 look up what agenys they have in america  
+get book 
+
+
+## Checking who the other source is 
+
+```{r}
+
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "Source"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column])
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+
+```
+
+The other is MAP, lets check the accuracy of either the FBI and MAP, whp has most duplicates is duplication caused due to the 2 sources, whihc holds the most accurate data integrity
+
+
+## check incident column meaning and action Type
+
+Refer back to dataDoc
+
+
+##  Cause  
+
+Just examining circumstance there seems to be lots of Others - would like to specify other arguments The breakdown appears as such :  other not specified, other, other negligent handling of gun, other sex offence 
+```{r}
+
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "Circumstance"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column])
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+```
+```{r}
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "Situation"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column]) 
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+```
+## Situation contains 2 sets of data lets see if we can spilt it  
+
+There is 6 groups,
+I would like to split the data with the have single victim, 
+I would need to create new categories in this so maybe victim count, offender count?
+
+
+## Vic age goes to 101 unquiue entries lets double chck that
+
+```{r}
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "VicAge"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column]) 
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+```
+Here we see errors in age such as 999 lets do a check to see how much this record appears : 12672  Thats at lot of records to not have an accurate age. 
+```{r}
+
+# Choose the column for which you want to count unique values (replace "column_name" with the actual column name)
+selected_column <- "VicAge"
+
+# Create a table of unique values and their counts
+value_counts <- table(SUP1[, selected_column])
+
+# Print the result
+cat("Value counts for", selected_column, ":\n")
+print(value_counts)
+
+```
+## breakdown of race/ethnities 
+
+Only 3 ethnicic groups being unknown, hispanic or not, lets do a count of victims ethnicity to see how many unknown.
+
+
+```{r}
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "VicEthnic"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column]) 
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "VicRace"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column]) 
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+
+
+# Choose the column for which you want to count unique values (replace "column_name" with the actual column name)
+selected_column <- "VicEthnic"
+
+# Create a table of unique values and their counts
+value_counts <- table(SUP1[, selected_column])
+
+# Print the result
+cat("Value counts for", selected_column, ":\n")
+print(value_counts)
+
+
+
+
+# Choose the column for which you want to count unique values (replace "column_name" with the actual column name)
+selected_column <- "VicRace"
+
+# Create a table of unique values and their counts
+value_counts <- table(SUP1[, selected_column])
+
+# Print the result
+cat("Value counts for", selected_column, ":\n")
+print(value_counts)
+
+```
+
+## Weapon breakdown
+```{r}
+
+# Choose the column for which you want to count unique values (replace "column_name" with the actual column name)
+selected_column <- "Weapon"
+
+# Create a table of unique values and their counts
+value_counts <- table(SUP1[, selected_column])
+
+# Print the result
+cat("Value counts for", selected_column, ":\n")
+print(value_counts)
+```
+
+## Relationship breakdown
+```{r}
+# Choose the column for which you want to count unique values (replace "column_name" with the actual column name)
+selected_column <- "Relationship"
+
+# Create a table of unique values and their counts
+value_counts <- table(SUP1[, selected_column])
+
+# Print the result
+cat("Value counts for", selected_column, ":\n")
+print(value_counts)
+```
+
+
+First thing to tomorrow Go explore these in depth and get a better understanding on the accumulation of differences pointed out 

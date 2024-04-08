@@ -1,0 +1,139 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+data <- read.csv("selected_data1.csv")
+```
+
+```{r}
+# Train-test split
+# Perform train-test split (80/20)
+set.seed(42)  # for reproducibility
+train_index <- sample(1:nrow(data), 0.8 * nrow(data))
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+
+train_indices <- sample(nrow(train_data), 0.8 * nrow(train_data))
+train_data_split <- train_data[train_indices, ]
+test_data_split <- train_data[-train_indices, ]
+
+# Fit logistic regression model
+logit_model <- glm(Solved ~ ., data = train_data_split, family = binomial)
+
+
+
+```
+
+```{r}
+# Load necessary libraries
+library(MASS)
+
+# Fit the full model
+fullmod <- glm(Solved ~ ., data = train_data, family = binomial)
+
+# Perform backward selection
+backwards <- step(fullmod, direction = "backward")
+
+# Print the summary of the final model after backward selection
+summary(backwards)
+
+# Perform forward selection
+forwards <- step(glm(Solved ~ 1, data = train_data, family = binomial), scope = list(lower = ~ 1, upper = formula(fullmod)), direction = "forward")
+
+
+# Print the summary of the final model after forward selection
+summary(forwards)
+
+# Perform both-ways selection
+bothways <- step(glm(Solved ~ 1, data = train_data, family = binomial), scope = list(lower = formula(fullmod), upper = formula(fullmod)), direction = "both")
+
+# Print the summary of the final model after both-ways selection
+summary(bothways)
+
+library(coefplot)
+
+# Coefficient plot for the final model after backward selection
+coefplot(backwards)
+
+library(pROC)
+
+# Predicted probabilities from the final model
+predicted_probs <- predict(backwards, newdata = test_data, type = "response")
+
+# ROC curve
+roc_curve <- roc(test_data$Solved, predicted_probs)
+plot(roc_curve)
+
+
+
+
+```
+
+   
+relationship_categoryPartner                   7.319e-01  3.268e-01   2.240 0.025106 *  
+geopolitical_regionNortheast                   9.156e-01  8.052e-02  11.371  < 2e-16 ***
+geopolitical_regionUnknown                     4.294e-01  1.973e-01   2.177 0.029475 *  
+geopolitical_regionWest                        8.524e-01  7.646e-02  11.149  < 2e-16 ***
+VicRaceBlack                                  -3.955e-01  1.867e-01  -2.118 0.034167 *  
+political_affiliationRepublican               -5.699e-01  9.636e-02  -5.915 3.33e-09 ***
+weapon_categoryPhysical                        5.281e-01  2.369e-01   2.229 0.025796 *  
+death_penalty_activeInactive                  -2.159e-01  6.364e-02  -3.392 0.000694 ***
+year_intervals                                -1.542e-01  5.111e-02  -3.018 0.002546 ** 
+```{r}
+# Load necessary libraries
+library(MASS)
+
+## Create a contingency table
+fullmod <- xtabs(~ Solved + VicSex + VicAge1 + year_intervals, data = train_data)
+
+
+ind2 <- glm(Solved ~ VicSex + VicAge1 + year_intervals, data = train_data, family = binomial)
+
+# Perform backward selection
+backloglin <- step(ind2, direction = "backward")
+
+# Perform forward selection
+
+forloglin <- step(ind2, scope = list(lower = formula(ind2), upper = formula(train_data)), direction = "forward")
+
+
+# Perform both-ways selection
+bothloglin <- step(ind2, scope = list(lower = formula(ind2), upper = formula(fulltrain_data)), direction = "both", trace = 0)
+
+# Perform stepwise selection for conditional model
+ind3 <- loglm(Freq ~ Solved * VicSex * VicAge1 + year_intervals, data = train_data)
+forcond <- step(ind3, scope = list(lower = formula(ind3), upper = formula(fulltrain_data)), direction = "both", trace = 0)
+backcond <- step(fulltrain_data, scope = list(lower = formula(ind3), upper = formula(fulltrain_data)), direction = "backward", trace = 0)
+
+# View selected models
+summary(backloglin)
+summary(forloglin)
+summary(bothloglin)
+summary(forcond)
+summary(backcond)
+
+
+```
+
+```{r}
+# Odds ratios for the final model after backward selection
+odds_ratios_backwards <- exp(coef(backwards))
+
+# Print the odds ratios
+print(odds_ratios_backwards)
+
+# Odds ratios for the final model after forward selection
+odds_ratios_forwards <- exp(coef(forwards))
+
+# Print the odds ratios
+print(odds_ratios_forwards)
+
+```
+```{r}
+exp(cbind(OR=coef(backwards),
+confint.default(backwards)))
+```
+

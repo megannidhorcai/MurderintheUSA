@@ -1,0 +1,370 @@
+---
+title: "Catorgies in DATA"
+output: html_notebook
+---
+AGENTYPE
+Solved : take out primary fedral 0.02,regional police 0.05, special police 0.2 & tribal 0.4 
+Unsolved :
+SOURCE 
+
+SITUATION
+SOLVED : mutiple victims/ unkown offenders 
+SOLVED : single vitcim / unknonw offender 
+Take out all unsolved data
+
+Vic age combine 0-10 and 11-18 
+
+Race : Native Hawiaan/Pafic Islandet 0.03 & unknown american indian and native 
+Take out OffAge 
+OffSex 
+Off Rcae
+Off Ethnic 
+Circumstance 
+Take fire out 
+poison 
+ 
+
+```{r}
+data <- read.csv("SUP1.csv")
+
+print(data)
+```
+
+```{r}
+
+data$year_intervals <- cut(data$Year, breaks = seq(1975, 2025, by = 5), labels = FALSE, include.lowest = TRUE)
+
+```
+
+```{r}
+# Define the breaks for age groups
+age_breaks <- c(0,18,24, 32, 45, 60, Inf)
+
+# Create labels for the age groups
+age_labels <- c("0-18", "19-24", "25-32", "33-45","46-60", "61+")
+
+# Create a new column with age groups
+data$VicAge1<- cut(data$VicAge, breaks = age_breaks, labels = age_labels, include.lowest = TRUE)
+
+# Create a new column with age groups
+data$OffAge1<- cut(data$OffAge, breaks = age_breaks, labels = age_labels, include.lowest = TRUE)
+```
+
+```{r}
+# Create a named vector to map weapon entries to categories (with lowercase keywords)
+weapon_categories <- list(
+  "Gun" = c("shotgun", "rifle", "handgun - pistol, revolver, etc", "other gun", "firearm, type not stated"),
+  "Physical" = c("knife or cutting instrument", "personal weapons, includes beating", "blunt object - hammer, club, etc", "pushed or thrown out window"),
+  "Fire" = c("fire", "explosives"),
+  "Unknown" = c("other or type unknown", "weapon not reported"),
+  "Air" = c("strangulation - hanging","asphyxiation - includes death by gas","drowning"),
+  "Poison" = c("narcotics or drugs, sleeping pills", "poison - does not include gas")
+)
+
+# Function to categorize weapons
+categorize_weapon <- function(weapon) {
+  weapon <- tolower(weapon)  # Convert weapon entry to lowercase
+  for (category in names(weapon_categories)) {
+    if (weapon %in% tolower(weapon_categories[[category]])) {  # Convert category keywords to lowercase for comparison
+      return(category)
+    }
+  }
+  return("Unknown")
+}
+
+# Apply the categorization function to the weapon entries
+data$weapon_category <- sapply(data$Weapon, categorize_weapon)
+
+# Print unique categories
+unique_categories <- unique(data$weapon_category)
+print(unique_categories)
+
+```
+```{r}
+
+# Define a function to categorize states based on political affiliation
+categorize_political_affiliation <- function(state) {
+  democratic_states <- c("California", "New York", "Massachusetts", "Washington", "Oregon","Minnesota", "Hawaii")
+  republican_states <- c("Texas", "Florida", "Georgia", "Ohio", "North Carolina", "Idaho", "Wyoming","Utah","Alaska","Oklahoma", "Kansas", "Nebraska","South Dakota","North Dakota", "Alabama", "Mississippi", "South Carolina")
+  all_states <- c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+  
+  if (state %in% democratic_states) {
+    return("Democratic")
+  } else if (state %in% republican_states) {
+    return("Republican")
+  } else if (state %in% setdiff(all_states, c(democratic_states, republican_states))) {
+    return("Swing")
+  } else {
+    return("Unknown")
+  }
+}
+
+# Define a function to categorize states based on death penalty status
+categorize_death_penalty <- function(state) {
+  death_penalty_states <- c("Texas", "Florida", "Georgia", "Ohio", "Oklahoma", "Montana", "Idaho","Nevada", "Utah", "Wyoming", "South Dakota", "Nebraska", "Kansas", "Arkansas", "Louisiana", "Mississippi","Alabama", "South Carolina", "North Carolina", "Kentucky", "Indiana")
+  all_states <- c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+  
+  if (state %in% death_penalty_states) {
+    return("Active")
+  } else if (state %in% setdiff(all_states, death_penalty_states)) {
+    return("Inactive")
+  } else {
+    return("Unknown")
+  }
+}
+
+# Define a function to categorize states based on geopolitical region
+categorize_geopolitical_region <- function(state) {
+  northeast_states <- c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont", "New York", "New Jersey", "Pennsylvania")
+  midwest_states <- c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin", "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota", "South Dakota")
+  south_states <- c("Delaware", "Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "West Virginia", "Alabama", "Kentucky", "Mississippi", "Tennessee", "Arkansas", "Louisiana", "Oklahoma", "Texas")
+  west_states <- c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming", "Alaska", "California", "Hawaii", "Oregon", "Washington")
+  all_states <- c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming")
+  
+  if (state %in% northeast_states) {
+    return("Northeast")
+  } else if (state %in% midwest_states) {
+    return("Midwest")
+  } else if (state %in% south_states) {
+    return("South")
+  } else if (state %in% west_states) {
+    return("West")
+  } else {
+    return("Unknown")
+  }
+}
+
+data$political_affiliation <- sapply(data$State, categorize_political_affiliation)
+data$death_penalty_active <- sapply(data$State, categorize_death_penalty)
+data$geopolitical_region <- sapply(data$State, categorize_geopolitical_region)
+
+
+
+```
+```{r}
+unique_categories <- unique(data$Agentype)
+print(unique_categories)
+```
+
+```{r}
+categorize_season <- function(month) {
+  spring_months <- c("March", "April", "May")
+  summer_months <- c("June", "July", "August")
+  fall_months <- c("September", "October", "November")
+  winter_months <- c("December", "January", "February")
+  
+  if (month %in% spring_months) {
+    return("Spring")
+  } else if (month %in% summer_months) {
+    return("Summer")
+  } else if (month %in% fall_months) {
+    return("Fall")
+  } else if (month %in% winter_months) {
+    return("Winter")
+  } else {
+    return("Unknown")
+  }
+}
+
+data$season <- sapply(data$Month, categorize_season)
+
+unique_seasons <- unique(data$season)
+print(unique_seasons)
+
+```
+```{r}
+unique_seasons <- unique(data$Circumstance)
+print(unique_seasons)
+
+```
+
+```{r}
+crime_categories <- list(
+  "Other" = c("other arguments", "other - not specified", "other"),
+  "Brawl" = c("brawl due to influence of alcohol", "brawl due to influence of narcotics"),
+  "Theft" = c("burglary", "robbery", "motor vehicle theft", "larceny"),
+  "Arson" = c("arson"),
+  "Sex" = c("rape", "other sex offense", "prostitution and commercialized vice", "Lovers Triangle"),
+  "Drug & Gambling" = c("narcotic drug laws", "gambling"),
+  "Negligence" = c("all other manslaughter by negligence", "children playing with gun", "child killed by babysitter", "victim shot in hunting accident"),
+  "Gang" = c("juvenile gang killings", "gangland killings", "institutional killings"),
+  "Felon Murder" = c("felon killed by private citizen", "felon killed by police"),
+  "Sniper" = c("sniper attack")
+)
+
+categorize_crime <- function(crime) {
+  crime <- tolower(crime)  # Convert crime entry to lowercase
+  for (category in names(crime_categories)) {
+    if (crime %in% tolower(crime_categories[[category]])) {  
+      return(category)
+    }
+  }
+  return("Unknown")
+}
+
+
+data$other_crime <- sapply(data$Circumstance, categorize_crime)
+unique_categories <- unique(data$other_crime)
+print(unique_categories)
+
+
+```
+```{r}
+unique_categories <- unique(data$Relationship)
+print(unique_categories)
+```
+
+```{r}
+# Create a named list to map relationship types to categories (with lowercase keywords)
+relationship_categories <- list(
+  "Family" = c( "in-law", "other family", "ex-husband"),
+  "Ex" = c("ex-husband", "Ex-wife"),
+  "Partner" = c("husband", "wife","common-law wife",  "Common-law husband", "homosexual relationship","girlfriend", "boyfriend")
+,"Parental" = c("stepfather","Stepmother","father","mother"),
+ "Children" = c("stepson", "daughter", "son", "stepdaughter"),
+"sibling" = c("brother", "sister"), 
+  "Friend" = c("acquaintance", "friend", "neighbor", "other - known to victim"),
+  "Work" = c("employee", "employer")
+)
+
+# Function to categorize relationship types
+categorize_relationship <- function(relationship) {
+  relationship <- tolower(relationship)  # Convert relationship entry to lowercase
+  for (category in names(relationship_categories)) {
+    if (relationship %in% tolower(relationship_categories[[category]])) {  # Convert category keywords to lowercase for comparison
+      return(category)
+    }
+  }
+  return("Unknown")
+}
+
+# Assuming you have a "relationship_type" column in your dataset, apply the categorization function to it
+data$relationship_category <- sapply(data$Relationship, categorize_relationship)
+
+# Print unique categories
+unique_categories <- unique(data$relationship_category)
+print(unique_categories)
+
+```
+```{r}
+# Assuming your dataset is named 'data', you can print the column names as follows:
+column_names <- colnames(data)
+print(column_names)
+
+```
+
+```{r}
+library(dplyr)
+library(glmnet)
+library(pROC)
+
+# Assuming your original dataset is named 'data' and you want to select specific columns
+selected_columns <- data[c("Agentype", "Source", "Solved", "Situation", "VicAge1", "VicSex", "VicRace", "VicEthnic", "OffAge1", "OffSex", "OffRace", "OffEthnic", "Circumstance", "year_intervals", "weapon_category", "political_affiliation", "death_penalty_active", "geopolitical_region", "season", "other_crime", "relationship_category")]
+
+# Now, you can save this subset of data as a CSV file
+write.csv(selected_columns, file = "selected_data.csv", row.names = FALSE)
+
+# Print the first few rows of the subset to verify
+print(head(selected_columns))
+
+
+# Read the CSV file
+murder_data <- read.csv("selected_data.csv")
+
+
+
+# Convert "Yes" to 1 and "No" to 0 in the 'Solved' column
+murder_data$Solved <- ifelse(murder_data$Solved == "Yes", 1, 0)
+
+
+# Select the desired columns
+murder_data_selected <- murder_data
+
+# Perform train-test split (80/20)
+set.seed(42)  # for reproducibility
+train_index <- sample(1:nrow(murder_data_selected), 0.8 * nrow(murder_data_selected))
+train_data <- murder_data_selected[train_index, ]
+test_data <- murder_data_selected[-train_index, ]
+
+
+
+
+
+```
+
+
+```{r}
+# Fit logistic regression model
+logit_model <- glm(Solved ~ ., data = train_data, family = binomial)
+
+# Make predictions on test data
+test_predictions <- predict(logit_model, newdata = test_data, type = "response")
+
+# Evaluate the predictions
+conf_matrix <- table(round(test_predictions), test_data$Solved)
+print(conf_matrix)
+print(summary(logit_model))
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+recall <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+f1_score <- 2 * precision * recall / (precision + recall)
+
+print(paste("Accuracy:", accuracy))
+print(paste("Precision:", precision))
+print(paste("Recall:", recall))
+print(paste("F1-Score:", f1_score))
+print(summary(logit_model))
+```
+
+```{r}
+# Load required library
+library(rpart)
+library(rpart.plot)
+
+features <- subset(train_data)
+target <- train_data$Solved
+# Create and train the Decision Tree model with adjusted cp parameter
+tree_model <- rpart(Solved ~ ., data = train_data, method = "class", control = rpart.control(cp = 0.00))
+
+# Print summary of the Decision Tree model
+summary(tree_model)
+
+# Plot the Decision Tree
+plot(tree_model)
+text(tree_model, cex = 0.8)
+
+plotcp(tree_model)
+# Print summary of the Decision Tree model
+summary(tree_model)
+
+# Plot the Decision Tree
+
+# Plot the decision tree
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
+#plot(tree_model)
+#text(tree_model, cex = 0.8)
+```
+```{r}
+library(ggplot2)
+
+# Convert Solved to factor
+train_data$Solved <- factor(train_data$Solved, levels = c("Unsolved", "Solved"))
+
+# Check the structure of data_filtered
+str(train_data$geopolitical_region)
+
+# Create a boxplot for solved and unsolved crimes by geopolitical region
+p <- ggplot(train_data, aes(x = geopolitical_region, y = Solved)) +
+  geom_boxplot() +
+  labs(x = "Geopolitical Region", y = "Solved") +
+  ggtitle("Boxplots of Solved and Unsolved Crimes by Geopolitical Region") +
+  facet_wrap(~ Solved, scales = "free")
+
+# Print the plot object
+print(p)
+
+
+
+
+```
+

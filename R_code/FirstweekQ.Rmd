@@ -1,0 +1,378 @@
+---
+title: "Firstweek_q"
+output: html_notebook
+---
+
+# INTRODUCTION 
+
+First week intro 
+
+```{r}
+SUP <- read.csv("SUP1.csv")
+
+```
+
+## Has the volume of cases changed through the decades?
+How I am going to approach this is do two bar charts one of soved and unsolved over time . 
+
+```{r}
+# Choose the column for which you want to print unique entries (replace "column_name" with the actual column name)
+selected_column <- "Year"
+
+# Print unique entries in the selected column
+unique_entries <- unique(SUP1[, selected_column])
+cat("Unique entries in", selected_column, ":\n")
+print(unique_entries)
+
+```
+
+```{r}
+# Remove non-numeric or missing values from SUP$Year
+valid_years <- SUP$Year[is.finite(SUP$Year)]
+
+# Create a bar chart of the 'Year' variable
+barplot(table(valid_years), 
+        main = "Volume of Cases by Year",
+        xlab = "Year",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(valid_years)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+
+
+```
+It is interesting here to see the spike in covid years when people are in lockdown lets explore this peak. There is two other intereting peaks in the 70's and 90's
+There does not appear to have any significant outliers which is great for consistent data training, 
+```{r}
+# Remove non-numeric or missing values from SUP$Year
+valid_years <- SUP$Year[is.finite(SUP$Year)]
+# Calculate the decade for each year
+valid_years <- 10 * floor(valid_years / 10)
+
+
+# Create a bar chart of the 'Year' variable
+barplot(table(valid_years), 
+        main = "Volume of Cases by Year",
+        xlab = "Year",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(valid_years)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+
+```
+
+First year is 1976 explains the dip only 4 years, only 2 years in 2020, better to look at the year spike for a more accurate representation .
+This is too generalized 
+## What is the gender breakdown of offenders and victims? Does this change through the decades?
+
+barchart that compares gender for ofenders and victim 
+
+
+```{r}
+# Remove missing or non-character values from SUP$VicSex
+valid_genders <- SUP$VicSex[!is.na(SUP$VicSex) & is.character(SUP$VicSex)]
+
+# Create a bar chart of the 'VicSex' variable
+barplot(table(valid_genders), 
+        main = "Volume of Cases by  Victim's Gender",
+        xlab = "Gender",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(valid_genders)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+
+```
+Unknown would be classed as an error in reporting data, This is better representative of the Sex rather than gender but is classed as gender in the dataframe. High counts of male would like to see the breakd0wn of reasons i.e is Male higher gang rate or female ie lover trainagles reason. 
+
+
+
+```{r}
+# Remove missing or non-character values from SUP$VicSex
+valid_genders <- SUP$OffSex[!is.na(SUP$OffSex) & is.character(SUP$OffSex)]
+
+# Create a bar chart of the 'VicSex' variable
+barplot(table(valid_genders), 
+        main = "Volume of Cases by  Offenders's Gender",
+        xlab = "Gender",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(valid_genders)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+```
+Higher unknown count is expected in this data i.e no suspect is present, would like to see the breakdown of solved and not solved within Female and Male,also would through my new column suggested if multiple offenders ar in the unknown section 
+## What is the age breakdown of offenders? Has this changed through the decades?
+
+So the error of 999 will cause a skew in te data lets remove it and examine separtly 
+
+```{r}
+# Convert OffAge to numeric, if it's not already numeric
+SUP$OffAge <- as.numeric(SUP$OffAge)
+
+# Remove occurrences of "999" from OffAge
+cleaned_age <- SUP$OffAge[SUP$OffAge != 999]
+
+# Create a bar chart of the cleaned age data
+barplot(table(cleaned_age), 
+        main = "Volume of Cases by Offender's Age",
+        xlab = "Age",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(cleaned_age)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+
+
+```
+```
+So above we see a significant right skew in ages this is quite drasctic.
+
+
+ok so we would like to see for this one age breakdown, then year so lets do a line graph for the years then try get some trends examine them in decade intervals 
+then we can overline the lines lets see if there is a way for me to compare similarities and give a percentage likeness. 
+```{r}
+# Convert OffAge to numeric, if it's not already numeric
+SUP$OffAge <- as.numeric(SUP$OffAge)
+
+# Remove occurrences of "999" from OffAge
+cleaned_age <- SUP$OffAge[SUP$OffAge != 999]
+
+# Remove non-numeric or missing values from SUP$Year
+valid_years <- SUP$Year[is.finite(SUP$Year)]
+
+# Match valid_years with cleaned_age based on the order of appearance in the dataset
+valid_years <- valid_years[1:length(cleaned_age)]
+
+# Create a scatter plot of age against years
+plot(valid_years, cleaned_age, 
+     main = "Offender's Age Distribution Over Years",
+     xlab = "Year", ylab = "Age",
+     col = "skyblue", pch = 16)  # Use filled circles as markers
+
+
+
+```
+
+Interesting chart,  very clumped data 
+
+## Is there evidence to suggest that age of the offender is associated with whether the crime is solved or not?
+Lets look at age count of offenders and the dual barchart for solved and not 
+```{r}
+
+# Convert OffAge to numeric, if it's not already numeric
+SUP$OffAge <- as.numeric(SUP$OffAge)
+
+# Remove occurrences of "999" from OffAge
+cleaned_age <- SUP$OffAge[SUP$OffAge != 999]
+
+# Subset the data for solved and unsolved cases
+solved_age <- cleaned_age[SUP$Solved == "Yes"]
+unsolved_age <- cleaned_age[SUP$Solved == "No"]
+
+# Get the maximum count of cases for scaling ylim
+max_count <- max(table(cleaned_age))
+
+# Create a matrix with counts for solved and unsolved cases
+counts_matrix <- rbind(table(solved_age), table(unsolved_age))
+
+# Create a barplot with stacked bars for solved and unsolved cases
+barplot(counts_matrix,
+        main = "Volume of Cases by Offender's Age (Solved vs. Unsolved)",
+        xlab = "Age",
+        ylab = "Number of Cases",
+        col = c("skyblue", "salmon"),
+        legend = c("Solved", "Unsolved"),
+        args.legend = list(x = "topright"),
+        ylim = c(0, max_count * 1.1),  # Adjust ylim for better visualization
+        beside = FALSE  # Stack bars
+)
+
+
+
+```
+First iteration really bad to examine this by years need a thicker barchart 
+The Solved/Unsolved match the same trend as the volume of cases according to age. Howvwer there is a drastic number of young offenders in unsolved 
+
+
+
+## Age breakdown of victims?
+```{r}
+# Convert OffAge to numeric, if it's not already numeric
+SUP$VicAge <- as.numeric(SUP$VicAge)
+
+# Remove occurrences of "999" from OffAge
+cleaned_age <- SUP$VicAge[SUP$VicAge != 999]
+
+# Create a bar chart of the cleaned age data
+barplot(table(cleaned_age), 
+        main = "Volume of Cases by Victims 's Age",
+        xlab = "Age",
+        ylab = "Number of Cases",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(cleaned_age)) * 1.1),  # Adjust ylim for better visualization
+        las = 1  # Rotate x-axis labels for better readability
+)
+
+```
+
+
+similair apporcah to offenders function,
+There is teh same skew however we see a peak in 0-5 age, 
+
+## Is there evidence to suggest that age of the victim is associated with whether the crime is solved or not?
+
+```{r}
+
+
+# Subset the data for solved and unsolved cases
+solved_age <- cleaned_age[SUP$Solved == "Yes"]
+unsolved_age <- cleaned_age[SUP$Solved == "No"]
+
+# Get the maximum count of cases for scaling ylim
+max_count <- max(table(cleaned_age))
+
+# Create a matrix with counts for solved and unsolved cases
+counts_matrix <- rbind(table(solved_age), table(unsolved_age))
+
+# Create a barplot with stacked bars for solved and unsolved cases
+barplot(counts_matrix,
+        main = "Volume of Cases by Victim's Age (Solved vs. Unsolved)",
+        xlab = "Age",
+        ylab = "Number of Cases",
+        col = c("skyblue", "salmon"),
+        legend = c("Solved", "Unsolved"),
+        args.legend = list(x = "topright"),
+        ylim = c(0, max_count * 1.1),  # Adjust ylim for better visualization
+        beside = FALSE  # Stack bars
+)
+
+
+```
+
+similair apporcah to offenders 
+There seems to be a more varied of the unsolved data,But still a spike co repsonding to the offenders emaning age diffrence crimes are none estint, Im not sure how they have age data on the offender when there is not a suspect.  
+## Have the weapons used changed through the decades?
+```{r}
+
+# Create a bar plot of weapons and their counts
+barplot(table(SUP$Weapon), 
+        main = "Weapons Used in Cases",
+        xlab = "Weapon",
+        ylab = "Count",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(SUP$Weapon)) * 1.1),  # Adjust ylim for better visualization
+        las = 2  # Rotate x-axis labels for better readability
+)
+
+```
+
+similar approcah to age breakdown, mutiple spikes and some small weapon counts 
+
+## Locations? Any place where cases spiked? Ideally like to account for population e.g. give this as cases per 100,000 population
+
+So lets do this 2 diffrent ways 
+state by state get population, then do cases per a number this is like normalising, 
+lets do a county by county breakdown I want to see if there is a gap in the map to make sure all counties are covered this is more intense and cover, I wasnt a big red to show no data for this county so one gives a broad overview and the other more in detail breakdown 
+
+```{r}
+library(maps)
+map("state", fill = TRUE, col = "lightblue", bg = "white")
+library(USA.state.boundaries)
+states <- us_boundaries(map_date = "2000-01-01", resolution = "low", states = TRUE)
+
+
+
+```
+
+
+## Race breakdown of offenders and victims
+
+```{r}
+barplot(table(SUP$VicRace), 
+        main = "Victim's Race",
+        xlab = "Race",
+        ylab = "Count",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(SUP$Weapon)) * 1.1),  # Adjust ylim for better visualization
+        las = 2  # Rotate x-axis labels for better readability
+)
+
+```
+There is quite simliar rates for White and Black I would like to go further and expore population of Races in The USA too property adjust the data per 100,000 people
+```{r}
+barplot(table(SUP$OffRace), 
+        main = "Offender's Race",
+        xlab = "Race",
+        ylab = "Count",
+        col = "skyblue",
+        border = "black",
+        ylim = c(0, max(table(SUP$Weapon)) * 1.1),  # Adjust ylim for better visualization
+        las = 2  # Rotate x-axis labels for better readability
+)
+```
+
+just barchart of it 
+We see there is nealry an equa amount between Black,White and Unknown which would make snese as unknown is no suspects 
+
+## % solved / % not solved – through the decade
+````{r}
+
+# Remove occurrences of "999" from OffAge
+Year <- SUP$Year
+
+# Subset the data for solved and unsolved cases
+solved_year <- Year[SUP$Solved == "Yes"]
+unsolved_year <- Year[SUP$Solved == "No"]
+
+# Get the maximum count of cases for scaling ylim
+max_count <- max(table(Year))
+
+# Create a matrix with counts for solved and unsolved cases
+counts_matrix <- rbind(table(solved_year), table(unsolved_year))
+
+# Create a barplot with stacked bars for solved and unsolved cases
+barplot(counts_matrix,
+        main = "Volume of Cases by Year (Solved vs. Unsolved)",
+        xlab = "Age",
+        ylab = "Number of Cases",
+        col = c("skyblue", "salmon"),
+        legend = c("Solved", "Unsolved"),
+        args.legend = list(x = "topright"),
+        ylim = c(0, max_count * 1.1),  # Adjust ylim for better visualization
+        beside = FALSE  # Stack bars
+)
+
+````
+
+lets do a 2 line chart for solved or not throughthe decades , the a year brekadown
+Ptretty consisrent troughout the years 
+
+
+
+
+## Does number solved/ number not solved vary with weapon, age, gender, or race?
+look at victm
+lets see unsolved / solved correletaion with weapon ,age, gender, race 
+
+## Look at yearly data also and summarise across the decades via boxplots
+Trend report across the years
+
+## Classify each record – is it solved or not using a range of data mining tools
+Lets look at some data mining tools to approach this 
+
+## Use cluster analysis to group together similar murders - examine the unsolved in these clusters and see what they are close to. Or look at clusters of all unsolved murders – could they be all the same offender??
+look into more of this 
+
+
+

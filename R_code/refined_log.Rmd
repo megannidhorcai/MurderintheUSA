@@ -1,0 +1,943 @@
+---
+title: "refined_log"
+author: "M.D'Arcy"
+date: "2024-02-12"
+output: html_document
+---
+
+```{r}
+# Load the dataset
+data <- read.csv("selected_data1.csv")
+
+# Set the total number of samples
+total_samples <- 70000
+
+
+# Set the percentage of solved and not solved
+percentage_solved <- 0.5
+percentage_not_solved <- 0.5
+
+# Calculate the number of solved and not solved samples
+num_solved <- total_samples * percentage_solved
+num_not_solved <- total_samples * percentage_not_solved
+
+# Sample solved and not solved samples from the original dataset
+solved_indices <- sample(which(data$Solved == 1), num_solved)
+not_solved_indices <- sample(which(data$Solved == 0), num_not_solved)
+
+# Create a balanced sample set with 50% solved and 50% not solved
+balanced_data <- rbind(data[solved_indices, ], data[not_solved_indices, ])
+
+# Shuffle the rows of the dataset to randomize the order
+balanced_data <- balanced_data[sample(nrow(balanced_data)), ]
+
+# Check the balance
+table(balanced_data$Solved)
+
+```
+
+```{r}
+data$id <- 1:nrow(data)
+write.csv(data, file = "selected_data1.csv", row.names = FALSE)
+print(head(data))
+
+```
+
+```{r}
+
+
+# Get unique values of the column "Solved"
+solved_values <- unique(data$Solved)
+
+# Loop over each column (except the "Solved" column)
+for (col_name in colnames(data)[-which(names(data) == "Solved")]) {
+  cat("\nColumn:", col_name, "\n")
+  
+  # Loop over each unique value of "Solved"
+  for (solved_val in solved_values) {
+    # Filter data for the current subcategory of "Solved"
+    subset_data <- data[data$Solved == solved_val, ]
+    
+    # Calculate the percentage of each subcategory
+    percent <- prop.table(table(subset_data[[col_name]])) * 100
+    
+    # Print the percentage for each subcategory
+    cat("Solved:", solved_val, "\n")
+    for (i in seq_along(percent)) {
+      cat(names(percent)[i], ": ", round(percent[i], 2), "%\n")
+    }
+  }
+}
+
+
+```
+AGENTYPE
+Solved : take out primary fedral 0.02,regional police 0.05, special police 0.2 & tribal 0.4 
+Unsolved :
+SOURCE 
+
+SITUATION
+SOLVED : mutiple victims/ unkown offenders 
+SOLVED : single vitcim / unknonw offender 
+Take out all unsolved data
+
+Vic age combine 0-10 and 11-18 
+
+Race : Native Hawiaan/Pafic Islandet 0.03 & unknown american indian and native 
+Take out OffAge 
+OffSex 
+Off Rcae
+Off Ethnic 
+Circumstance 
+Take fire out 
+poison 
+
+```{r}
+# Remove columns
+data <- data[, !(names(data) %in% c("OffAge1", "OffRace","OffEthnic", "Circumstance", "OffSex", "season", "other_crime", "VicEthnic", "Agentype", "Source"))]
+
+print(data)
+```
+
+
+
+```{r}
+
+# Perform train-test split (80/20)
+set.seed(52)  # for reproducibility
+train_index <- sample(1:nrow(balanced_data), 0.8 * nrow(balanced_data))
+train_data <- balanced_data[train_index, ]
+test_data <- balanced_data[-train_index, ]
+
+```
+
+```{r}
+# Print column names
+print(colnames(data))
+# Convert "Yes" to 1 and "No" to 0 in the 'Solved' column
+data$Solved <- ifelse(data$Solved == "Yes", 1, 0)
+
+```
+Weapon_category
+VicRace
+Geo
+Rel
+VicAge1
+polical
+VicSex 
+Year intervals
+Death pen
+Other_criem 
+
+
+```{r}
+unique(train_data$Solved)
+
+# Convert "Yes" to 1 and "No" to 0
+train_data$Solved <- ifelse(train_data$Solved == "Yes", 1, 0)
+
+# Check for missing values
+missing_values <- sum(is.na(train_data$Solved))
+print(paste("Number of missing values in 'Solved' column:", missing_values))
+
+# Check unique values
+unique_values <- unique(train_data$Solved)
+print("Unique values in 'Solved' column:")
+print(unique_values)
+```
+
+```{r}
+# Fit logistic regression model
+logit_model <- glm(Solved ~ VicAge1, data = train_data, family = binomial)
+
+# Make predictions on test data
+test_predictions <- predict(logit_model, newdata = test_data, type = "response")
+
+# Evaluate the predictions
+conf_matrix <- table(round(test_predictions), test_data$Solved)
+print(conf_matrix)
+print(dim(conf_matrix))
+
+print(summary(logit_model))
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+precision <- conf_matrix[1, 2] / sum(conf_matrix[, 2])
+
+recall <- conf_matrix[1, 2] / sum(conf_matrix[1, ])
+
+f1_score <- 2 * precision * recall / (precision + recall)
+
+print(paste("Accuracy:", accuracy))
+print(paste("Precision:", precision))
+print(paste("Recall:", recall))
+print(paste("F1-Score:", f1_score))
+print(summary(logit_model))
+
+```
+
+
+
+```{r}
+# Fit logistic regression model
+logit_model1 <- glm(Solved ~ political_affiliation, data = train_data, family = binomial)
+
+# Make predictions on test data
+test_predictions1 <- predict(logit_model1, newdata = test_data, type = "response")
+
+# Evaluate the predictions
+conf_matrix1 <- table(round(test_predictions1), test_data$Solved)
+print(conf_matrix1)
+
+print(summary(logit_model1))
+accuracy <- sum(diag(conf_matrix1)) / sum(conf_matrix1)
+precision <- conf_matrix1[1, 2] / sum(conf_matrix1[, 2])
+
+recall <- conf_matrix1[1, 2] / sum(conf_matrix1[1, ])
+
+f1_score <- 2 * precision * recall / (precision + recall)
+
+print(paste("Accuracy:", accuracy))
+print(paste("Precision:", precision))
+print(paste("Recall:", recall))
+print(paste("F1-Score:", f1_score))
+print(summary(logit_model1))
+```
+
+
+```{r}
+# Fit logistic regression model
+logit_model1 <- glm(Solved ~ weapon_category, data = train_data, family = binomial)
+
+# Make predictions on test data
+test_predictions1 <- predict(logit_model1, newdata = test_data, type = "response")
+
+# Evaluate the predictions
+conf_matrix1 <- table(round(test_predictions1), test_data$Solved)
+print(conf_matrix1)
+
+print(summary(logit_model1))
+accuracy <- sum(diag(conf_matrix1)) / sum(conf_matrix1)
+precision <- conf_matrix1[1, 2] / sum(conf_matrix1[, 2])
+
+recall <- conf_matrix1[1, 2] / sum(conf_matrix1[1, ])
+
+f1_score <- 2 * precision * recall / (precision + recall)
+
+print(paste("Accuracy:", accuracy))
+print(paste("Precision:", precision))
+print(paste("Recall:", recall))
+print(paste("F1-Score:", f1_score))
+print(summary(logit_model1))
+```
+
+```{r}
+# Create a contingency table
+observed <- table(data$Solved, data$political_affiliation)
+
+# Compute chi-square test
+chi_square <- chisq.test(observed)
+
+# Print the results
+print(chi_square)
+
+
+# Plot the results
+barplot(chi_square$observed, beside = TRUE, col = c("lightblue", "lightgreen"), main = "Chi-Square Test")
+legend("topright", legend = colnames(observed), fill = c("lightblue", "lightgreen"))
+
+```
+
+```{r}
+# Initialize an empty list to store results
+chi_square_results <- list()
+
+# Iterate through each column (except "Solved")
+for (col_name in colnames(data)[-which(colnames(data) == "Solved")]) {
+  # Create a contingency table
+  contingency_table <- table(data$Solved, data[[col_name]])
+  
+  # Perform chi-square test
+  chi_square_result <- chisq.test(contingency_table)
+  
+  # Store the result in the list
+  chi_square_results[[col_name]] <- chi_square_result
+}
+
+# Print or access the results as needed
+for (col_name in names(chi_square_results)) {
+  print(paste("Chi-square test result for column:", col_name))
+  print(chi_square_results[[col_name]])
+}
+
+```
+
+
+```{r}
+library(Matrix)
+
+selected_data <- train_data[, c("Solved", "relationship_category")]
+
+# Convert categorical variables to dummy variables using model.matrix
+data_dummies <- model.matrix(~.-1, data = selected_data)
+
+# Determine the number of rows to sample (70% of the data)
+sample_size <- floor(0.8 * nrow(data_dummies))
+
+# Generate random indices for the sample
+sample_indices <- sample(1:nrow(data_dummies), size = sample_size, replace = FALSE)
+
+# Extract the sample from the data
+sample_data_dummies <- data_dummies[sample_indices, ]
+
+# Convert to sparse matrix directly
+sparse_data_dummies <- as(as(as(as.matrix(sample_data_dummies), "sparseMatrix"), "generalMatrix"), "TsparseMatrix")
+
+```
+
+
+```{r}
+
+
+# Convert the sparse matrix to a dense matrix
+dense_matrix <- as.matrix(sparse_data_dummies)
+
+# Compute the correlation matrix
+correlation_matrix <- cor(dense_matrix, use = "pairwise.complete.obs")
+
+
+# Check for NaN values in the correlation matrix
+if (any(is.nan(correlation_matrix))) {
+  print("Warning: NaN values found in the correlation matrix. Check for infinite or undefined values in the data.")
+}
+
+# Plot the heatmap of correlations
+corrplot(correlation_matrix, method = "color")
+```
+```{r}
+# Check instances of 'Solved' in train_data
+train_solved_instances <- sum(train_data$Solved == 1)
+train_not_solved_instances <- sum(train_data$Solved == 0)
+
+cat("Train Data:")
+cat("\nInstances of 'Solved':", train_solved_instances)
+cat("\nInstances of 'Not Solved':", train_not_solved_instances)
+cat("\nTotal Instances:", nrow(train_data))
+
+# Check instances of 'Solved' in test_data
+test_solved_instances <- sum(test_data$Solved == 1)
+test_not_solved_instances <- sum(test_data$Solved == 0)
+
+cat("\n\nTest Data:")
+cat("\nInstances of 'Solved':", test_solved_instances)
+cat("\nInstances of 'Not Solved':", test_not_solved_instances)
+cat("\nTotal Instances:", nrow(test_data))
+
+```
+
+```{r}
+# Fit logistic regression model 1
+logit_model1 <- glm(Solved ~ Situation, data = train_data, family = binomial)
+test_predictions1 <- predict(logit_model1, newdata = test_data, type = "response")
+conf_matrix1 <- table(round(test_predictions1), test_data$Solved)
+print(conf_matrix1)
+accuracy1 <- sum(diag(conf_matrix1)) / sum(conf_matrix1)
+precision1 <- conf_matrix1[1, 2] / sum(conf_matrix1[, 2])
+recall1 <- conf_matrix1[1, 2] / sum(conf_matrix1[1, ])
+f1_score1 <- 2 * precision1 * recall1 / (precision1 + recall1)
+cat("Accuracy:", accuracy1, "\n")
+cat("Precision:", precision1, "\n")
+cat("Recall:", recall1, "\n")
+cat("F1-Score:", f1_score1, "\n\n")
+
+# Fit logistic regression model 2
+logit_model2 <- glm(Solved ~ VicAge1, data = train_data, family = binomial)
+test_predictions2 <- predict(logit_model2, newdata = test_data, type = "response")
+conf_matrix2 <- table(round(test_predictions2), test_data$Solved)
+print(conf_matrix2)
+accuracy2 <- sum(diag(conf_matrix2)) / sum(conf_matrix2)
+precision2 <- conf_matrix2[1, 2] / sum(conf_matrix2[, 2])
+recall2 <- conf_matrix2[1, 2] / sum(conf_matrix2[1, ])
+f1_score2 <- 2 * precision2 * recall2 / (precision2 + recall2)
+cat("Accuracy:", accuracy2, "\n")
+cat("Precision:", precision2, "\n")
+cat("Recall:", recall2, "\n")
+cat("F1-Score:", f1_score2, "\n\n")
+
+# Fit logistic regression model 3
+logit_model3 <- glm(Solved ~ VicSex, data = train_data, family = binomial)
+test_predictions3 <- predict(logit_model3, newdata = test_data, type = "response")
+conf_matrix3 <- table(round(test_predictions3), test_data$Solved)
+print(conf_matrix3)
+accuracy3 <- sum(diag(conf_matrix3)) / sum(conf_matrix3)
+precision3 <- conf_matrix3[1, 2] / sum(conf_matrix3[, 2])
+recall3 <- conf_matrix3[1, 2] / sum(conf_matrix3[1, ])
+f1_score3 <- 2 * precision3 * recall3 / (precision3 + recall3)
+cat("Accuracy:", accuracy3, "\n")
+cat("Precision:", precision3, "\n")
+cat("Recall:", recall3, "\n")
+cat("F1-Score:", f1_score3, "\n\n")
+
+# Fit logistic regression model 4
+logit_model4 <- glm(Solved ~ VicRace, data = train_data, family = binomial)
+test_predictions4 <- predict(logit_model4, newdata = test_data, type = "response")
+conf_matrix4 <- table(round(test_predictions4), test_data$Solved)
+print(conf_matrix4)
+accuracy4 <- sum(diag(conf_matrix4)) / sum(conf_matrix4)
+precision4 <- conf_matrix4[1, 2] / sum(conf_matrix4[, 2])
+recall4 <- conf_matrix4[1, 2] / sum(conf_matrix4[1, ])
+f1_score4 <- 2 * precision4 * recall4 / (precision4 + recall4)
+cat("Accuracy:", accuracy4, "\n")
+cat("Precision:", precision4, "\n")
+cat("Recall:", recall4, "\n")
+cat("F1-Score:", f1_score4, "\n\n")
+
+# Fit logistic regression model 5
+logit_model5 <- glm(Solved ~ year_intervals, data = train_data, family = binomial)
+test_predictions5 <- predict(logit_model5, newdata = test_data, type = "response")
+conf_matrix5 <- table(round(test_predictions5), test_data$Solved)
+print(conf_matrix5)
+accuracy5 <- sum(diag(conf_matrix5)) / sum(conf_matrix5)
+precision5 <- conf_matrix5[1, 2] / sum(conf_matrix5[, 2])
+recall5 <- conf_matrix5[1, 2] / sum(conf_matrix5[1, ])
+f1_score5 <- 2 * precision5 * recall5 / (precision5 + recall5)
+cat("Accuracy:", accuracy5, "\n")
+cat("Precision:", precision5, "\n")
+cat("Recall:", recall5, "\n")
+cat("F1-Score:", f1_score5, "\n\n")
+
+# Fit logistic regression model 6
+logit_model6 <- glm(Solved ~ weapon_category, data = train_data, family = binomial)
+test_predictions6 <- predict(logit_model6, newdata = test_data, type = "response")
+conf_matrix6 <- table(round(test_predictions6), test_data$Solved)
+print(conf_matrix6)
+accuracy6 <- sum(diag(conf_matrix6)) / sum(conf_matrix6)
+precision6 <- conf_matrix6[1, 2] / sum(conf_matrix6[, 2])
+recall6 <- conf_matrix6[1, 2] / sum(conf_matrix6[1, ])
+f1_score6 <- 2 * precision6 * recall6 / (precision6 + recall6)
+cat("Accuracy:", accuracy6, "\n")
+cat("Precision:", precision6, "\n")
+cat("Recall:", recall6, "\n")
+cat("F1-Score:", f1_score6, "\n\n")
+
+# Fit logistic regression model 7
+logit_model7 <- glm(Solved ~ political_affiliation, data = train_data, family = binomial)
+test_predictions7 <- predict(logit_model7, newdata = test_data, type = "response")
+conf_matrix7 <- table(round(test_predictions7), test_data$Solved)
+print(conf_matrix7)
+accuracy7 <- sum(diag(conf_matrix7)) / sum(conf_matrix7)
+precision7 <- conf_matrix7[1, 2] / sum(conf_matrix7[, 2])
+recall7 <- conf_matrix7[1, 2] / sum(conf_matrix7[1, ])
+f1_score7 <- 2 * precision7 * recall7 / (precision7 + recall7)
+cat("Accuracy:", accuracy7, "\n")
+cat("Precision:", precision7, "\n")
+cat("Recall:", recall7, "\n")
+cat("F1-Score:", f1_score7, "\n\n")
+
+# Fit logistic regression model 8
+logit_model8 <- glm(Solved ~ death_penalty_active, data = train_data, family = binomial)
+test_predictions8 <- predict(logit_model8, newdata = test_data, type = "response")
+conf_matrix8 <- table(round(test_predictions8), test_data$Solved)
+print(conf_matrix8)
+accuracy8 <- sum(diag(conf_matrix8)) / sum(conf_matrix8)
+precision8 <- conf_matrix8[1, 2]
+
+# Fit logistic regression model 9
+logit_model9 <- glm(Solved ~ relationship_category, data = train_data, family = binomial)
+test_predictions9 <- predict(logit_model9, newdata = test_data, type = "response")
+conf_matrix9 <- table(round(test_predictions9), test_data$Solved)
+print(conf_matrix9)
+accuracy9 <- sum(diag(conf_matrix9)) / sum(conf_matrix9)
+precision9 <- conf_matrix9[1, 2] / sum(conf_matrix9[, 2])
+recall9 <- conf_matrix9[1, 2] / sum(conf_matrix9[1, ])
+f1_score9 <- 2 * precision9 * recall9 / (precision9 + recall9)
+cat("Accuracy:", accuracy9, "\n")
+cat("Precision:", precision9, "\n")
+cat("Recall:", recall9, "\n")
+cat("F1-Score:", f1_score9, "\n\n")
+
+# Fit logistic regression model 10
+logit_model10 <- glm(Solved ~ geopolitical_region, data = train_data, family = binomial)
+test_predictions10 <- predict(logit_model10, newdata = test_data, type = "response")
+conf_matrix10 <- table(round(test_predictions10), test_data$Solved)
+print(conf_matrix10)
+accuracy10 <- sum(diag(conf_matrix10)) / sum(conf_matrix10)
+precision10 <- conf_matrix10[1, 2] / sum(conf_matrix10[, 2])
+recall10 <- conf_matrix10[1, 2] / sum(conf_matrix10[1, ])
+f1_score10 <- 2 * precision10 * recall10 / (precision10 + recall10)
+cat("Accuracy:", accuracy10, "\n")
+cat("Precision:", precision10, "\n")
+cat("Recall:", recall10, "\n")
+cat("F1-Score:", f1_score10, "\n\n")
+
+
+
+```
+
+Take 2 :
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~ relationship_category + VicSex , data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+
+
+
+```
+Previous :
+     No   Yes
+  0 49898 44013
+  1  1279 78506
+Accuracy: 0.7392456 
+Precision: 0.3592341 
+Recall: 0.4686671 
+F1-Score: 0.4067181 
+ 
+ 
+ New :
+
+     No   Yes
+  0 49898 44013
+  1  1279 78506
+Accuracy: 0.7392456 
+Precision: 0.3592341 
+Recall: 0.4686671 
+F1-Score: 0.4067181 
+
+
+
+No change 
+
+
+TAKE 3 
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~ relationship_category + VicSex + political_affiliation, data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+
+
+```
+
+Increase 
+       No   Yes
+  0 37034 28204
+  1 14143 94315
+Accuracy: 0.7562005 
+Precision: 0.230201 
+Recall: 0.4323247 
+F1-Score: 0.3004309  
+
+Lets remove Relationsip 
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~  VicSex + political_affiliation, data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+Ok It lowers it but worried unsolved : unknwon to victim may be fitting higher 
+VicSex is manily boy may overload will keep other factprs
+
+will keep as is 
+
+
+Take 4 :
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~  VicSex + year_intervals, data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+       No    Yes
+  0   1273    874
+  1  49904 121645
+Accuracy: 0.7076617 
+Precision: 0.007133587 
+Recall: 0.4070796 
+F1-Score: 0.01402147 
+
+
+New 
+
+       No    Yes
+  0    167    148
+  1  51010 122371
+Accuracy: 0.7054739 
+Precision: 0.001207976 
+Recall: 0.4698413 
+F1-Score: 0.002409756 
+
+
+We are not very good at catorgising unsolved lets see if we can insrease that with the readdtion of relationship
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~ relationship_category + VicSex + year_intervals, data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+print(summery(logitmodel11))
+```
+Look at that diffrence :
+
+Old :
+
+    No    Yes
+  0    167    148
+  1  51010 122371
+Accuracy: 0.7054739 
+Precision: 0.001207976 
+Recall: 0.4698413 
+F1-Score: 0.002409756 
+
+New :
+
+       No   Yes
+  0 38572 32890
+  1 12605 89629
+Accuracy: 0.7380769 
+Precision: 0.2684482 
+Recall: 0.4602446 
+F1-Score: 0.3391054 
+
+
+Lets see if we can improve it without relationship 
+
+First let me try our 3 location based varibles 
+                                      
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~  political_affiliation + death_penalty_active + geopolitical_region, data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+
+Good predictor for solved again 
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~ political_affiliation + VicSex + year_intervals + death_penalty_active , data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+
+
+Ok I will take this model
+
+so to pick between death penalty and geopolictal 
+reduce false yes by 74 and lose 23 right no
+ 
+     No    Yes
+  0   1273    904
+  1  49904 121615
+Accuracy: 0.7074889 
+Precision: 0.007378447 
+Recall: 0.4152503 
+F1-Score: 0.01449926 
+
+The addition of relationship category has this effect :
+
+```{r}
+# Fit logistic regression model 9
+logit_model111 <- glm(Solved ~ relationship_category + political_affiliation + VicSex + year_intervals + death_penalty_active , data = train_data, family = binomial)
+test_predictions111 <- predict(logit_model111, newdata = test_data, type = "response")
+conf_matrix111 <- table(round(test_predictions111), test_data$Solved)
+print(conf_matrix111)
+accuracy111 <- sum(diag(conf_matrix111)) / sum(conf_matrix111)
+precision111 <- conf_matrix111[1, 2] / sum(conf_matrix111[, 2])
+recall111 <- conf_matrix111[1, 2] / sum(conf_matrix111[1, ])
+f1_score111 <- 2 * precision111 * recall111 / (precision111 + recall111)
+cat("Accuracy:", accuracy111, "\n")
+cat("Precision:", precision111, "\n")
+cat("Recall:", recall111, "\n")
+cat("F1-Score:", f1_score111, "\n\n")
+```
+Let me see the crossover between political_affiliation and death_penalty_active 
+```{r}
+  democratic_states <- c("California", "New York", "Massachusetts", "Washington", "Oregon","Minnesota", "Hawaii")
+  republican_states <- c("Texas", "Florida", "Georgia", "Ohio", "North Carolina", "Idaho", "Wyoming","Utah","Alaska","Oklahoma", "Kansas", "Nebraska","South Dakota","North Dakota", "Alabama", "Mississippi", "South Carolina")
+
+  death_penalty_states <- c("Texas - R", "Florida- R", "Georgia-R", "Ohio-R", "Oklahoma-R", "Montana-S", "Idaho-R","Nevada-S", "Utah-R", "Wyoming-R", "South Dakota-R", "Nebraska-R", "Kansas-S", "Arkansas-S", "Louisiana-S", "Mississippi-R","Alabama-R", "South Carolina-R", "North Carolina-R", "Kentucky-S", "Indiana-S")
+ 
+  
+
+```
+No dem states in Death penatlry -
+14 / 17 are rep
+
+discuss should I have this.
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~  + political_affiliation + VicSex + year_intervals  , data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+```{r}
+# Fit logistic regression model 9
+logit_model111 <- glm(Solved ~  relationship_category + political_affiliation + VicSex + year_intervals  , data = train_data, family = binomial)
+test_predictions111 <- predict(logit_model111, newdata = test_data, type = "response")
+conf_matrix111 <- table(round(test_predictions111), test_data$Solved)
+print(conf_matrix111)
+accuracy111 <- sum(diag(conf_matrix111)) / sum(conf_matrix111)
+precision111 <- conf_matrix111[1, 2] / sum(conf_matrix111[, 2])
+recall111 <- conf_matrix111[1, 2] / sum(conf_matrix111[1, ])
+f1_score111 <- 2 * precision111 * recall111 / (precision111 + recall111)
+cat("Accuracy:", accuracy111, "\n")
+cat("Precision:", precision111, "\n")
+cat("Recall:", recall111, "\n")
+cat("F1-Score:", f1_score111, "\n\n")
+# Load necessary libraries
+library(pROC)
+
+# Calculate ROC curve
+roc_curve <- roc(test_data$Solved, test_predictions111)
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+
+
+# Convert the confusion matrix table to a dataframe
+conf_matrix_df <- as.data.frame(as.table(conf_matrix111))
+names(conf_matrix_df) <- c("Predicted", "Actual", "Count")
+
+# Plot confusion matrix with a gradient color scale
+library(ggplot2)
+
+ggplot(data = conf_matrix_df, aes(x = Predicted, y = Actual, fill = Count)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = sprintf("%.1f", Count)), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "blue", limits = c(0, 20000)) +  # Adjust the limits for the highest value
+  theme_minimal() +
+  labs(x = "Predicted", y = "Actual", fill = "Count")
+
+
+
+
+
+
+```
+
+
+
+
+```{r}
+# Fit logistic regression model 9
+logit_model11 <- glm(Solved ~   VicSex + year_intervals + death_penalty_active , data = train_data, family = binomial)
+test_predictions11 <- predict(logit_model11, newdata = test_data, type = "response")
+conf_matrix11 <- table(round(test_predictions11), test_data$Solved)
+print(conf_matrix11)
+accuracy11 <- sum(diag(conf_matrix11)) / sum(conf_matrix11)
+precision11 <- conf_matrix11[1, 2] / sum(conf_matrix11[, 2])
+recall11 <- conf_matrix11[1, 2] / sum(conf_matrix11[1, ])
+f1_score11 <- 2 * precision11 * recall11 / (precision11 + recall11)
+cat("Accuracy:", accuracy11, "\n")
+cat("Precision:", precision11, "\n")
+cat("Recall:", recall11, "\n")
+cat("F1-Score:", f1_score11, "\n\n")
+```
+
+
+
+
+Pol
+      No    Yes
+  0   1273    904
+  1  49904 121615
+Accuracy: 0.7074889 
+Precision: 0.007378447 
+Recall: 0.4152503 
+F1-Score: 0.01449926 
+
+
+Death 
+      No    Yes
+  0   1287    909
+  1  49890 121610
+Accuracy: 0.7075408 
+Precision: 0.007419257 
+Recall: 0.4139344 
+F1-Score: 0.01457724 
+
+
+
+Time to look at the clustering sections
+
+
+AIC 
+
+```{r}
+# Fit logistic regression model
+logit_model <- glm(Solved ~ ., data = train_data, family = binomial)
+
+# Calculate log-likelihood
+log_likelihood <- logLik(logit_model)
+
+# Calculate number of parameters
+num_parameters <- length(coef(logit_model))
+
+# Calculate AIC
+AIC_value <- -2 * log_likelihood + 2 * num_parameters
+
+# Print AIC
+cat("AIC value:", AIC_value, "\n")
+
+
+```
+
+```{r}
+# Fit logistic regression model
+logit_model <- glm(Solved ~ ., data = train_data, family = binomial)
+
+# Calculate log-likelihood
+log_likelihood <- logLik(logit_model)
+
+# Calculate number of parameters
+num_parameters <- length(coef(logit_model))
+
+# Calculate BIC
+num_obs <- nrow(train_data)  # Number of observations
+BIC_value <- -2 * log_likelihood + log(num_obs) * num_parameters
+
+# Print BIC
+cat("BIC value:", BIC_value, "\n")
+
+```
+
+```{r}
+# Fit nested model (Model 1)
+nested_model <- glm(Solved ~ relationship_category, data = train_data, family = binomial)
+
+# Fit full model (Model 2)
+full_model <- glm(Solved ~ relationship_category + VicSex, data = train_data, family = binomial)
+
+# Perform likelihood ratio test
+lrt <- anova(nested_model, full_model, test = "Chisq")
+
+# Print test results
+print(lrt)
+
+```
+
+```{r}
+# Train-test split
+set.seed(123)  # For reproducibility
+train_indices <- sample(nrow(train_data), 0.8 * nrow(train_data))
+train_data_split <- train_data[train_indices, ]
+test_data_split <- train_data[-train_indices, ]
+
+# Fit logistic regression model
+logit_model <- glm(Solved ~ relationship_category + VicSex, data = train_data_split, family = binomial)
+
+# Re-substitution error rate
+train_predictions <- predict(logit_model, newdata = train_data_split, type = "response")
+train_predicted_labels <- ifelse(train_predictions > 0.5, 1, 0)
+train_actual_labels <- train_data_split$Solved
+resubstitution_error_rate <- mean(train_predicted_labels != train_actual_labels)
+cat("Re-substitution error rate:", resubstitution_error_rate, "\n")
+
+# Predictive accuracy
+test_predictions <- predict(logit_model, newdata = test_data_split, type = "response")
+test_predicted_labels <- ifelse(test_predictions > 0.5, 1, 0)
+test_actual_labels <- test_data_split$Solved
+predictive_accuracy <- mean(test_predicted_labels == test_actual_labels)
+cat("Predictive accuracy:", predictive_accuracy, "\n")
+```
+
+
+Now to do so with my model of choices : VicSex + year_intervals + death_penalty_active
+
+```{r}
+# Fit nested model (Model 1)
+nested_model <- glm(Solved ~ VicSex, data = train_data, family = binomial)
+
+# Fit full model (Model 2)
+full_model <- glm(Solved ~ year_intervals + VicSex, data = train_data, family = binomial)
+
+# Perform likelihood ratio test
+lrt <- anova(nested_model, full_model, test = "Chisq")
+
+# Print test results
+print(lrt)
+```
+
+
